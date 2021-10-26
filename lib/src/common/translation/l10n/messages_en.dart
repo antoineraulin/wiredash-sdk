@@ -51,7 +51,7 @@ class WiredashLocalizedTranslations extends WiredashTranslations {
       "We are listening. Please provide as much info as needed so we can help you.";
   @override
   String get feedbackStateIntroMsg =>
-      "We can’t wait to get your thoughts on our app. What would you like to do?";
+      "We can’t wait to get your thoughts on myDevinci. What would you like to do?";
   @override
   String get feedbackStateIntroTitle => "Hi there 👋";
   @override
