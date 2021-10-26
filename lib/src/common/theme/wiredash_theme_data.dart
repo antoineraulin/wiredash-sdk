@@ -25,7 +25,7 @@ class WiredashThemeData {
     if (brightness == Brightness.light) {
       return WiredashThemeData._(
         brightness: brightness,
-        primaryColor: primaryColor ?? const Color(0xff03A4E5),
+        primaryColor: primaryColor ?? const Color(0xFF7323D7),
         secondaryColor: secondaryColor ?? const Color(0xff35F1D7),
         primaryTextColor: primaryTextColor ?? const Color(0xff2b2b2b),
         secondaryTextColor: secondaryTextColor ?? const Color(0xff88888a),

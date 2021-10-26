@@ -1,8 +1,8 @@
 import 'dart:ui' show SingletonFlutterWindow;
 
 import 'package:flutter/foundation.dart';
-import 'package:wiredash/src/common/build_info/build_info_manager.dart';
 import 'package:wiredash/src/common/device_info/device_info.dart';
+import 'package:wiredash/src/common/utils/build_info.dart';
 
 // import a dart:html or dart:io version of `createDeviceInfoGenerator`
 // if non are available the stub is used
@@ -14,23 +14,23 @@ abstract class DeviceInfoGenerator {
   /// Loads a [DeviceInfoGenerator] based on the environment by calling the
   /// optional imported createDeviceInfoGenerator function
   factory DeviceInfoGenerator(
-    BuildInfoManager buildInfo,
+    Future<DeviceInfoPlus> info,
     SingletonFlutterWindow window,
   ) {
-    return createDeviceInfoGenerator(buildInfo, window);
+    return createDeviceInfoGenerator(info, window);
   }
 
   /// Collection of all [DeviceInfo] shared between all platforms
-  static DeviceInfo baseDeviceInfo(
-    BuildInfoManager buildInfo,
+  static Future<DeviceInfo> baseDeviceInfo(
+    Future<DeviceInfoPlus> infoasync,
     SingletonFlutterWindow window,
-  ) {
+  ) async {
+    DeviceInfoPlus info = await infoasync;
     return DeviceInfo(
       appIsDebug: kDebugMode,
-      appVersion: buildInfo.buildVersion,
-      buildNumber: buildInfo.buildNumber,
-      buildCommit: buildInfo.buildCommit,
-      deviceId: buildInfo.deviceId,
+      appVersion: info.appVersion,
+      buildNumber: info.appBuildNumber,
+      uuid: info.uuid,
       locale: window.locale.toString(),
       padding: [
         window.padding.left,
@@ -41,6 +41,10 @@ abstract class DeviceInfoGenerator {
       physicalSize: [window.physicalSize.width, window.physicalSize.height],
       pixelRatio: window.devicePixelRatio,
       textScaleFactor: window.textScaleFactor,
+      platformOS: info.os,
+      platformOSBuild: info.osVersion,
+      brand: info.brand,
+      model: info.model,
       viewInsets: [
         window.viewInsets.left,
         window.viewInsets.top,
@@ -50,5 +54,5 @@ abstract class DeviceInfoGenerator {
     );
   }
 
-  DeviceInfo generate();
+  Future<DeviceInfo> generate();
 }

@@ -31,7 +31,7 @@ class WiredashLocalizedTranslations extends WiredashTranslations {
   String get feedbackModeImprovementMsg =>
       "Avez-vous une idée pour améliorer notre application ? Nous aimerions le savoir !";
   @override
-  String get feedbackModeImprovementTitle => "Demander une fonctionnalité";
+  String get feedbackModeImprovementTitle => "Proposer une fonctionnalité";
   @override
   String get feedbackModePraiseMsg =>
       "Faites-nous savoir ce que vous aimez vraiment dans notre application, nous pourrons peut-être la rendre encore meilleure ?";
@@ -51,7 +51,7 @@ class WiredashLocalizedTranslations extends WiredashTranslations {
       "Nous sommes à l'écoute. Veuillez fournir autant d'informations que nécessaire pour que nous puissions vous aider.";
   @override
   String get feedbackStateIntroMsg =>
-      "Nous sommes impatients de connaître votre avis sur notre application. Que souhaitez-vous faire ?";
+      "Nous sommes impatients de connaître votre avis sur myDevinci. Que souhaitez-vous faire ?";
   @override
   String get feedbackStateIntroTitle => "Bonjour 👋";
   @override

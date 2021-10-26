@@ -4,8 +4,7 @@ class DeviceInfo {
   final bool? appIsDebug;
   final String? appVersion;
   final String? buildNumber;
-  final String? buildCommit;
-  final String? deviceId;
+  final String? uuid;
   final String? locale;
   final List<double>? padding;
   final List<double>? physicalSize;
@@ -29,6 +28,10 @@ class DeviceInfo {
   final double? textScaleFactor;
   final List<double>? viewInsets;
 
+  final String? brand;
+
+  final String? model;
+
   /// When in web, the full user agent String of the browser
   ///
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
@@ -38,8 +41,7 @@ class DeviceInfo {
     this.appIsDebug,
     this.appVersion,
     this.buildNumber,
-    this.buildCommit,
-    this.deviceId,
+    this.uuid,
     this.locale,
     this.padding = const [],
     this.physicalSize = const [],
@@ -50,14 +52,15 @@ class DeviceInfo {
     this.textScaleFactor,
     this.viewInsets = const [],
     this.userAgent,
+    this.brand,
+    this.model,
   });
 
   DeviceInfo copyWith({
     bool? appIsDebug,
     String? appVersion,
     String? buildNumber,
-    String? buildCommit,
-    String? deviceId,
+    String? uuid,
     String? locale,
     List<double>? padding,
     List<double>? physicalSize,
@@ -73,8 +76,7 @@ class DeviceInfo {
       appIsDebug: appIsDebug ?? this.appIsDebug,
       appVersion: appVersion ?? this.appVersion,
       buildNumber: buildNumber ?? this.buildNumber,
-      buildCommit: buildCommit ?? this.buildCommit,
-      deviceId: deviceId ?? this.deviceId,
+      uuid: uuid ?? this.uuid,
       locale: locale ?? this.locale,
       padding: padding ?? this.padding,
       physicalSize: physicalSize ?? this.physicalSize,
@@ -94,8 +96,7 @@ class DeviceInfo {
         'appIsDebug: $appIsDebug, '
         'appVersion: $appVersion, '
         'buildNumber: $buildNumber, '
-        'buildCommit: $buildCommit, '
-        'deviceId: $deviceId, '
+        'uuid: $uuid, '
         'locale: $locale, '
         'padding: $padding, '
         'physicalSize: $physicalSize, '
@@ -117,8 +118,7 @@ class DeviceInfo {
           appIsDebug == other.appIsDebug &&
           appVersion == other.appVersion &&
           buildNumber == other.buildNumber &&
-          buildCommit == other.buildCommit &&
-          deviceId == other.deviceId &&
+          uuid == other.uuid &&
           locale == other.locale &&
           listEquals(padding, other.padding) &&
           listEquals(physicalSize, other.physicalSize) &&
@@ -135,8 +135,7 @@ class DeviceInfo {
       appIsDebug.hashCode ^
       appVersion.hashCode ^
       buildNumber.hashCode ^
-      buildCommit.hashCode ^
-      deviceId.hashCode ^
+      uuid.hashCode ^
       locale.hashCode ^
       padding.hashCode ^
       physicalSize.hashCode ^
@@ -153,8 +152,7 @@ class DeviceInfo {
       appIsDebug: json['appIsDebug'] as bool?,
       appVersion: json['appVersion'] as String?,
       buildNumber: json['buildNumber'] as String?,
-      buildCommit: json['buildCommit'] as String?,
-      deviceId: json['deviceId'] as String?,
+      uuid: json['deviceId'] as String?,
       locale: json['locale'] as String?,
       padding: (json['padding'] as List<dynamic>?)
               ?.cast<num>()
@@ -194,12 +192,8 @@ class DeviceInfo {
     if (buildNumber != null) {
       uiValues['buildNumber'] = buildNumber;
     }
-
-    if (buildCommit != null) {
-      uiValues['buildCommit'] = buildCommit;
-    }
-    if (deviceId != null) {
-      uiValues['deviceId'] = deviceId;
+    if (uuid != null) {
+      uiValues['uuid'] = uuid;
     }
 
     if (locale != null) {

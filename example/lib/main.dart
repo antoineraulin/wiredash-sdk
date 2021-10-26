@@ -33,12 +33,10 @@ class _WiredashExampleAppState extends State<WiredashExampleApp> {
     /// own.
     /// Read more about translations support in the package's README.
     return Wiredash(
-      projectId: "Project ID from console.wiredash.io",
-      secret: "API Key from console.wiredash.io",
       navigatorKey: _navigatorKey,
       options: WiredashOptionsData(
         /// Change the locale of the Wiredash UI
-        locale: Locale('en'),
+        locale: Locale('fr'),
 
         /// Uncomment below to disable the screenshot step
         // screenshotStep: false,
@@ -46,7 +44,7 @@ class _WiredashExampleAppState extends State<WiredashExampleApp> {
         /// Uncomment below to disable different buttons
         // bugReportButton: false,
         // featureRequestButton: false,
-        // praiseButton: false,
+        praiseButton: false,
 
         /// Uncomment below to set custom translations work
         // customTranslations: {
@@ -60,33 +58,36 @@ class _WiredashExampleAppState extends State<WiredashExampleApp> {
         // textDirection: TextDirection.rtl,
       ),
       theme: WiredashThemeData(
+        brightness: Brightness.dark,
 
-          /// Uncomment below to explore the various theme options:
+        /// Uncomment below to explore the various theme options:
 
-          /// Customize the Font Family
-          // fontFamily: 'Monospace',
+        /// Customize the Font Family
+        // fontFamily: 'Monospace',
 
-          /// Customize the Bottom Sheet Border Radius
-          // sheetBorderRadius: BorderRadius.zero,
+        /// Customize the Bottom Sheet Border Radius
+        // sheetBorderRadius: BorderRadius.zero,
 
-          /// Customize Brightness and Colors
-          // brightness: Brightness.light,
-          // primaryColor: Colors.red,
-          // secondaryColor: Colors.blue,
+        /// Customize Brightness and Colors
+        // brightness: Brightness.light,
+        // primaryColor: Colors.red,
+        primaryColor: Colors.purple.shade300,
+        secondaryColor: Colors.purple.shade300,
 
-          /// Customize the Pen Colors
-          /// Note: If you change the Pen Colors, please consider providing
-          /// custom translations to the WiredashOptions to ensure the app is
-          /// accessible to all. The default translations describe the default
-          /// pen colors.
-          // firstPenColor: Colors.orange,
-          // secondPenColor: Colors.green,
-          // thirdPenColor: Colors.yellow,
-          // fourthPenColor: Colors.deepPurpleAccent,
-          ),
+        /// Customize the Pen Colors
+        /// Note: If you change the Pen Colors, please consider providing
+        /// custom translations to the WiredashOptions to ensure the app is
+        /// accessible to all. The default translations describe the default
+        /// pen colors.
+        // firstPenColor: Colors.orange,
+        // secondPenColor: Colors.green,
+        // thirdPenColor: Colors.yellow,
+        // fourthPenColor: Colors.deepPurpleAccent,
+      ),
       child: MaterialApp(
         navigatorKey: _navigatorKey,
         home: const _HomePage(),
+        darkTheme: ThemeData.dark(),
       ),
     );
   }

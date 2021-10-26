@@ -1,33 +1,27 @@
 import 'dart:io';
 import 'dart:ui' show SingletonFlutterWindow;
-
-import 'package:wiredash/src/common/build_info/build_info_manager.dart';
 import 'package:wiredash/src/common/device_info/device_info.dart';
 import 'package:wiredash/src/common/device_info/device_info_generator.dart';
+import 'package:wiredash/src/common/utils/build_info.dart';
 
 class _DartIoDeviceInfoGenerator implements DeviceInfoGenerator {
   _DartIoDeviceInfoGenerator(
-    this.buildInfo,
+    this.info,
     this.window,
   );
 
-  final BuildInfoManager buildInfo;
+  final Future<DeviceInfoPlus> info;
   final SingletonFlutterWindow window;
 
   @override
-  DeviceInfo generate() {
-    final base = DeviceInfoGenerator.baseDeviceInfo(buildInfo, window);
-    return base.copyWith(
-      platformOS: Platform.operatingSystem,
-      platformOSBuild: Platform.operatingSystemVersion,
-      platformVersion: Platform.version,
-    );
+  Future<DeviceInfo> generate() {
+    return DeviceInfoGenerator.baseDeviceInfo(info, window);
   }
 }
 
 /// Called by [DeviceInfoGenerator] factory constructor
 DeviceInfoGenerator createDeviceInfoGenerator(
-  BuildInfoManager buildInfo,
+  Future<DeviceInfoPlus> buildInfo,
   SingletonFlutterWindow window,
 ) {
   return _DartIoDeviceInfoGenerator(buildInfo, window);

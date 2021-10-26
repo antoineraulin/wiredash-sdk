@@ -1,34 +1,35 @@
 import 'dart:typed_data';
 
+import 'package:file/local.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:wiredash/src/capture/capture.dart';
 import 'package:wiredash/src/common/device_info/device_info_generator.dart';
-import 'package:wiredash/src/common/user/user_manager.dart';
 import 'package:wiredash/src/common/widgets/dismissible_page_route.dart';
 import 'package:wiredash/src/feedback/data/feedback_submitter.dart';
 
 import 'data/feedback_item.dart';
+import 'data/pending_feedback_item_storage.dart';
+import 'data/retrying_feedback_submitter.dart';
 import 'feedback_sheet.dart';
 
 class FeedbackModel with ChangeNotifier {
   FeedbackModel(
     this._captureKey,
     this._navigatorKey,
-    this._userManager,
-    this._feedbackSubmitter,
+    // this._feedbackSubmitter,
     this._deviceInfoGenerator,
   );
 
   final GlobalKey<CaptureState> _captureKey;
   final GlobalKey<NavigatorState> _navigatorKey;
-  final UserManager _userManager;
-  final FeedbackSubmitter _feedbackSubmitter;
+  // final FeedbackSubmitter _feedbackSubmitter;
   final DeviceInfoGenerator _deviceInfoGenerator;
 
   FeedbackType feedbackType = FeedbackType.bug;
   String? feedbackMessage;
   Uint8List? screenshot;
+  String? attachmentPath;
 
   FeedbackUiState _feedbackUiState = FeedbackUiState.hidden;
 
@@ -90,25 +91,26 @@ class FeedbackModel with ChangeNotifier {
     notifyListeners();
 
     final item = FeedbackItem(
-      deviceInfo: _deviceInfoGenerator.generate(),
-      email: _userManager.userEmail,
+      deviceInfo: await _deviceInfoGenerator.generate(),
       message: feedbackMessage!,
       type: feedbackType.label,
-      user: _userManager.userId,
+      attachmentPath: attachmentPath,
     );
 
     try {
-      await _feedbackSubmitter.submit(item, screenshot);
+      await RetryingFeedbackSubmitter(
+        LocalFileSystem(),
+      ).submit(item, screenshot);
       _clearFeedback();
       _feedbackUiState = FeedbackUiState.submitted;
-    } catch (e) {
+    } catch (_) {
       _feedbackUiState = FeedbackUiState.submissionError;
     }
     loading = false;
     notifyListeners();
   }
 
-  void show() {
+  void show({String? attachmentPath}) {
     assert(
       _navigatorKey.currentState != null,
       '''
@@ -121,8 +123,6 @@ To fix this, simply assign the same GlobalKey you assigned to Wiredash
 to your Material- / Cupertino- or WidgetsApp widget, like so:
 
 return Wiredash(
-  projectId: "YOUR-PROJECT-ID",
-  secret: "YOUR-SECRET",
   navigatorKey: _navigatorKey, // <-- should be the same
   child: MaterialApp(
     navigatorKey: _navigatorKey, // <-- should be the same
@@ -144,7 +144,7 @@ Thanks!
     if (_navigatorKey.currentState == null ||
         feedbackUiState == FeedbackUiState.capture ||
         feedbackUiState != FeedbackUiState.hidden) return;
-
+    this.attachmentPath = attachmentPath;
     feedbackUiState = FeedbackUiState.intro;
     final route = DismissiblePageRoute(
       builder: (context) => const FeedbackSheet(),
@@ -176,7 +176,6 @@ enum FeedbackUiState {
   intro,
   capture,
   feedback,
-  email,
   submit,
   submitted,
   submissionError,

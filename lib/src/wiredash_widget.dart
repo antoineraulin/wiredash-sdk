@@ -1,23 +1,17 @@
 import 'package:file/local.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wiredash/src/capture/capture.dart';
-import 'package:wiredash/src/common/build_info/build_info_manager.dart';
 import 'package:wiredash/src/common/device_info/device_info_generator.dart';
-import 'package:wiredash/src/common/network/wiredash_api.dart';
 import 'package:wiredash/src/common/options/wiredash_options.dart';
 import 'package:wiredash/src/common/options/wiredash_options_data.dart';
 import 'package:wiredash/src/common/theme/wiredash_theme.dart';
 import 'package:wiredash/src/common/theme/wiredash_theme_data.dart';
 import 'package:wiredash/src/common/translation/wiredash_localizations.dart';
-import 'package:wiredash/src/common/user/user_manager.dart';
 import 'package:wiredash/src/common/utils/build_info.dart';
-import 'package:wiredash/src/common/utils/project_credential_validator.dart';
 import 'package:wiredash/src/common/widgets/wiredash_scaffold.dart';
-import 'package:wiredash/src/feedback/data/direct_feedback_submitter.dart';
 import 'package:wiredash/src/feedback/data/pending_feedback_item_storage.dart';
 import 'package:wiredash/src/feedback/data/retrying_feedback_submitter.dart';
 import 'package:wiredash/src/feedback/feedback_model.dart';
@@ -42,8 +36,6 @@ import 'package:wiredash/src/wiredash_provider.dart';
 ///   @override
 ///   Widget build(BuildContext context) {
 ///     return Wiredash(
-///       projectId: "YOUR-PROJECT-ID",
-///       secret: "YOUR-SECRET",
 ///       theme: WiredashThemeData(),
 ///       navigatorKey: _navigatorKey,
 ///       child: MaterialApp(
@@ -66,8 +58,6 @@ class Wiredash extends StatefulWidget {
   /// wishes, ratings and much more
   const Wiredash({
     Key? key,
-    required this.projectId,
-    required this.secret,
     required this.navigatorKey,
     this.options,
     this.theme,
@@ -76,12 +66,6 @@ class Wiredash extends StatefulWidget {
 
   /// Reference to the app [Navigator] to show the Wiredash bottom sheet
   final GlobalKey<NavigatorState> navigatorKey;
-
-  /// Your Wiredash projectId
-  final String projectId;
-
-  /// Your Wiredash project secret
-  final String secret;
 
   /// Customize Wiredash's behaviour and language
   final WiredashOptionsData? options;
@@ -126,10 +110,6 @@ class WiredashState extends State<Wiredash> {
   late GlobalKey<CaptureState> captureKey;
   late GlobalKey<NavigatorState> navigatorKey;
 
-  late UserManager userManager;
-  late BuildInfoManager buildInfoManager;
-
-  late WiredashApi _api;
   late FeedbackModel _feedbackModel;
 
   late WiredashOptionsData _options;
@@ -138,24 +118,11 @@ class WiredashState extends State<Wiredash> {
   @override
   void initState() {
     super.initState();
-    debugProjectCredentialValidator.validate(
-      projectId: widget.projectId,
-      secret: widget.secret,
-    );
 
     captureKey = GlobalKey<CaptureState>();
     navigatorKey = widget.navigatorKey;
 
     _updateDependencies();
-
-    _api = WiredashApi(
-      httpClient: Client(),
-      projectId: widget.projectId,
-      secret: widget.secret,
-    );
-
-    userManager = UserManager();
-    buildInfoManager = BuildInfoManager(PlatformBuildInfo());
 
     const fileSystem = LocalFileSystem();
     final storage = PendingFeedbackItemStorage(
@@ -164,18 +131,14 @@ class WiredashState extends State<Wiredash> {
       () async => (await getApplicationDocumentsDirectory()).path,
     );
 
-    final feedbackSubmitter = kIsWeb
-        ? DirectFeedbackSubmitter(_api)
-        : (RetryingFeedbackSubmitter(fileSystem, storage, _api)
-          ..submitPendingFeedbackItems());
+    // final feedbackSubmitter = RetryingFeedbackSubmitter(fileSystem, storage)
+    // ..submitPendingFeedbackItems();
 
     _feedbackModel = FeedbackModel(
       captureKey,
       navigatorKey,
-      userManager,
-      feedbackSubmitter,
       DeviceInfoGenerator(
-        buildInfoManager,
+        getDeviceInfo(),
         WidgetsBinding.instance!.window,
       ),
     );
@@ -203,7 +166,6 @@ class WiredashState extends State<Wiredash> {
   @override
   Widget build(BuildContext context) {
     return WiredashProvider(
-      userManager: userManager,
       feedbackModel: _feedbackModel,
       child: WiredashOptions(
         data: _options,
@@ -223,11 +185,7 @@ class WiredashState extends State<Wiredash> {
     );
   }
 
-  void show() {
-    _feedbackModel.show();
+  void show({String? attachmentPath}) {
+    _feedbackModel.show(attachmentPath: attachmentPath);
   }
 }
-
-@visibleForTesting
-ProjectCredentialValidator debugProjectCredentialValidator =
-    const ProjectCredentialValidator();

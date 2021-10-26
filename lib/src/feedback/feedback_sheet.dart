@@ -26,16 +26,13 @@ class FeedbackSheet extends StatefulWidget {
 
 class _FeedbackSheetState extends State<FeedbackSheet>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  final _emailFormKey = GlobalKey<FormState>();
   final _feedbackFormKey = GlobalKey<FormState>();
 
   final _feedbackFocusNode = FocusNode();
-  final _emailFocusNode = FocusNode();
 
   @override
   void dispose() {
     _feedbackFocusNode.dispose();
-    _emailFocusNode.dispose();
     super.dispose();
   }
 
@@ -159,14 +156,6 @@ class _FeedbackSheetState extends State<FeedbackSheet>
   }
 
   Widget _buildFooter() {
-    if (context.feedbackModel!.feedbackUiState == FeedbackUiState.intro) {
-      return Image.asset(
-        'assets/images/logo_footer.png',
-        width: 100,
-        package: 'wiredash',
-        semanticLabel: WiredashLocalizations.of(context)!.companyLogoLabel,
-      );
-    }
     return const SizedBox.shrink();
   }
 
@@ -187,30 +176,9 @@ class _FeedbackSheetState extends State<FeedbackSheet>
             Expanded(
               child: NextButton(
                 key: const ValueKey('wiredash.sdk.save_feedback_button'),
-                text: WiredashLocalizations.of(context)!.feedbackSave,
-                icon: WiredashIcons.right,
-                onPressed: _submitFeedback,
-              ),
-            ),
-          ],
-        );
-      case FeedbackUiState.email:
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: PreviousButton(
-                text: WiredashLocalizations.of(context)!.feedbackBack,
-                onPressed: () =>
-                    state.feedbackUiState = FeedbackUiState.feedback,
-              ),
-            ),
-            Expanded(
-              child: NextButton(
-                key: const ValueKey('wiredash.sdk.send_feedback_button'),
                 text: WiredashLocalizations.of(context)!.feedbackSend,
                 icon: WiredashIcons.right,
-                onPressed: _submitEmail,
+                onPressed: _submitFeedback,
               ),
             ),
           ],
@@ -223,13 +191,6 @@ class _FeedbackSheetState extends State<FeedbackSheet>
   void _submitFeedback() {
     if (_feedbackFormKey.currentState!.validate()) {
       _feedbackFormKey.currentState!.save();
-      context.feedbackModel!.feedbackUiState = FeedbackUiState.email;
-    }
-  }
-
-  void _submitEmail() {
-    if (_emailFormKey.currentState!.validate()) {
-      _emailFormKey.currentState!.save();
       context.feedbackModel!.feedbackUiState = FeedbackUiState.submit;
     }
   }
@@ -267,8 +228,6 @@ class _FeedbackSheetState extends State<FeedbackSheet>
         return WiredashLocalizations.of(context)!.feedbackStateIntroTitle;
       case FeedbackUiState.feedback:
         return WiredashLocalizations.of(context)!.feedbackStateFeedbackTitle;
-      case FeedbackUiState.email:
-        return WiredashLocalizations.of(context)!.feedbackStateEmailTitle;
       case FeedbackUiState.submit:
       case FeedbackUiState.submitted:
         return WiredashLocalizations.of(context)!.feedbackStateSuccessTitle;
@@ -285,8 +244,6 @@ class _FeedbackSheetState extends State<FeedbackSheet>
         return WiredashLocalizations.of(context)!.feedbackStateIntroMsg;
       case FeedbackUiState.feedback:
         return WiredashLocalizations.of(context)!.feedbackStateFeedbackMsg;
-      case FeedbackUiState.email:
-        return WiredashLocalizations.of(context)!.feedbackStateEmailMsg;
       case FeedbackUiState.submit:
       case FeedbackUiState.submitted:
         return WiredashLocalizations.of(context)!.feedbackStateSuccessMsg;
@@ -300,9 +257,7 @@ class _FeedbackSheetState extends State<FeedbackSheet>
   double _getProgressValue() {
     switch (context.feedbackModel!.feedbackUiState) {
       case FeedbackUiState.feedback:
-        return 0.3;
-      case FeedbackUiState.email:
-        return 0.7;
+        return 0.5;
       case FeedbackUiState.submit:
         return 0.9;
       case FeedbackUiState.submissionError:
@@ -326,16 +281,6 @@ class _FeedbackSheetState extends State<FeedbackSheet>
           formKey: _feedbackFormKey,
           focusNode: _feedbackFocusNode,
           prefill: context.feedbackModel!.feedbackMessage,
-          autofocus: _emailFocusNode.hasFocus,
-        );
-      case FeedbackUiState.email:
-        return InputComponent(
-          key: const ValueKey('wiredash.sdk.email_input_field'),
-          type: InputComponentType.email,
-          formKey: _emailFormKey,
-          focusNode: _emailFocusNode,
-          prefill: context.userManager!.userEmail,
-          autofocus: _feedbackFocusNode.hasFocus,
         );
       case FeedbackUiState.submit:
         return const LoadingComponent();

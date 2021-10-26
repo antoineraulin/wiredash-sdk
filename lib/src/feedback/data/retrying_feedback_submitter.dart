@@ -3,25 +3,24 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:file/file.dart';
-import 'package:wiredash/src/common/network/wiredash_api.dart';
+import 'package:file/local.dart';
+import 'package:flutter_mailer/flutter_mailer.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:wiredash/src/common/utils/error_report.dart';
 import 'package:wiredash/src/feedback/data/feedback_item.dart';
 import 'package:wiredash/src/feedback/data/feedback_submitter.dart';
 import 'package:wiredash/src/feedback/data/pending_feedback_item.dart';
 import 'package:wiredash/src/feedback/data/pending_feedback_item_storage.dart';
+import 'package:wiredash/src/common/utils/uuid.dart';
 
 /// A class that knows how to "eventually send" a [FeedbackItem] and an associated
 /// screenshot file, retrying appropriately when sending fails.
 class RetryingFeedbackSubmitter implements FeedbackSubmitter {
   RetryingFeedbackSubmitter(
     this.fs,
-    this._pendingFeedbackItemStorage,
-    this._api,
   );
 
   final FileSystem fs;
-  final PendingFeedbackItemStorage _pendingFeedbackItemStorage;
-  final WiredashApi _api;
 
   // Ensures that we're not starting multiple "submitPendingFeedbackItems()" jobs
   // in parallel.
@@ -36,12 +35,12 @@ class RetryingFeedbackSubmitter implements FeedbackSubmitter {
   /// If sending fails, uses exponential backoff and tries again up to 7 times.
   @override
   Future<void> submit(FeedbackItem item, Uint8List? screenshot) async {
-    await _pendingFeedbackItemStorage.addPendingItem(item, screenshot);
+    // await _pendingFeedbackItemStorage.addPendingItem(item, screenshot);
 
     // Intentionally not "await"-ed. Since we've persisted the pending feedback
     // item, we can pretty safely assume it's going to be eventually sent, so the
     // future can complete after persisting the item.
-    submitPendingFeedbackItems();
+    submitPendingFeedbackItems(item: item, screenshot: screenshot);
   }
 
   /// Checks if there are any pending feedback items stored in persistent storage.
@@ -50,10 +49,14 @@ class RetryingFeedbackSubmitter implements FeedbackSubmitter {
   /// Can be called whenever there's a good time to try sending pending feedback
   /// items, such as in "initState()" of the Wiredash widget, or when network
   /// connection comes back online.
-  Future<void> submitPendingFeedbackItems() => _submitPendingFeedbackItems();
+  Future<void> submitPendingFeedbackItems(
+          {required FeedbackItem item, Uint8List? screenshot}) =>
+      _submitPendingFeedbackItems(item: item, screenshot: screenshot);
 
   Future<void> _submitPendingFeedbackItems({
     bool submittingLeftovers = false,
+    required FeedbackItem item,
+    Uint8List? screenshot,
   }) async {
     if (_submitting) {
       _hasLeftoverItems = true;
@@ -61,19 +64,27 @@ class RetryingFeedbackSubmitter implements FeedbackSubmitter {
     }
 
     _submitting = true;
-    final items = await _pendingFeedbackItemStorage.retrieveAllPendingItems();
+    // final items = await _pendingFeedbackItemStorage.retrieveAllPendingItems();
+    String? screenshotPath;
 
-    for (final item in items) {
-      await _submitWithRetry(item).catchError((_) {
-        // ignore when a single item couldn't be submitted
-        return null;
-      });
-
-      // Some "time to breathe", so that if there's a lot of pending items to
-      // send, they're not sent at the same exact moment which could cause
-      // some potential jank.
-      await Future.delayed(const Duration(milliseconds: 100));
+    if (screenshot != null) {
+      final directory = (await getApplicationDocumentsDirectory()).path;
+      final file = await LocalFileSystem()
+          .file('$directory/${uuidV4.generate()}.png')
+          .writeAsBytes(screenshot);
+      screenshotPath = file.path;
     }
+
+    final pendingItem = PendingFeedbackItem(
+      id: uuidV4.generate(),
+      feedbackItem: item,
+      screenshotPath: screenshotPath,
+    );
+
+    await _submitWithRetry(pendingItem).catchError((_) {
+      // ignore when a single item couldn't be submitted
+      return null;
+    });
 
     _submitting = false;
 
@@ -89,7 +100,7 @@ class RetryingFeedbackSubmitter implements FeedbackSubmitter {
         return;
       }
 
-      await _submitPendingFeedbackItems(submittingLeftovers: true);
+      // await _submitPendingFeedbackItems(submittingLeftovers: true);
     }
   }
 
@@ -101,45 +112,42 @@ class RetryingFeedbackSubmitter implements FeedbackSubmitter {
       attempt++;
       try {
         final screenshotPath = item.screenshotPath;
-        final Uint8List? screenshot =
-            screenshotPath != null && await fs.file(screenshotPath).exists()
-                ? await fs.file(screenshotPath).readAsBytes()
-                : null;
-        await _api.sendFeedback(
-          feedback: item.feedbackItem,
-          screenshot: screenshot,
-        );
-        // ignore: avoid_print
-        print("Feedback submitted ✌️ ${item.feedbackItem.message}");
-        await _pendingFeedbackItemStorage.clearPendingItem(item.id);
-        break;
-      } on UnauthenticatedWiredashApiException catch (e, stack) {
-        // Project configuration is off, retry at next app start
-        reportWiredashError(
-          e,
-          stack,
-          'Wiredash project configuration is wrong, next retry after next app start',
-        );
-        break;
-      } on WiredashApiException catch (e, stack) {
-        if (e.message != null &&
-            e.message!.contains("fails because") &&
-            e.message!.contains("is required")) {
-          // some required property is missing. The item will never be delivered
-          // to the server, therefore discard it.
-          reportWiredashError(
-            e,
-            stack,
-            'Feedback has missing properties and can not be submitted to server',
-          );
-          await _pendingFeedbackItemStorage.clearPendingItem(item.id);
-          break;
+        final List<String> attachments = [];
+        if (item.feedbackItem.attachmentPath != null) {
+          attachments.add(item.feedbackItem.attachmentPath!);
         }
-        reportWiredashError(
-          e,
-          stack,
-          'Wiredash server error. Will retry after app restart',
+        if (screenshotPath != null) {
+          attachments.add(screenshotPath);
+        }
+        final MailOptions mailOptions = MailOptions(
+          body: """
+${item.feedbackItem.message}
+
+
+
+Détails techniques :
+\tInformations sur l'appareil :
+\t mode debug : ${item.feedbackItem.deviceInfo.appIsDebug}
+\t app version : ${item.feedbackItem.deviceInfo.appVersion}
+\t build number : ${item.feedbackItem.deviceInfo.buildNumber}
+\t uuid : ${item.feedbackItem.deviceInfo.uuid}
+\t langue : ${item.feedbackItem.deviceInfo.locale}
+\t taille de l'écran : ${item.feedbackItem.deviceInfo.physicalSize}
+\t pixel ratio : ${item.feedbackItem.deviceInfo.pixelRatio}
+\t OS : ${item.feedbackItem.deviceInfo.platformOS}
+\t version OS : ${item.feedbackItem.deviceInfo.platformOSBuild}
+\t version dart Runtime : ${item.feedbackItem.deviceInfo.platformVersion}
+\t version SDK : ${item.feedbackItem.sdkVersion}
+\t échelle du texte : ${item.feedbackItem.deviceInfo.textScaleFactor}
+\t modèle : ${item.feedbackItem.deviceInfo.model}
+\t marque : ${item.feedbackItem.deviceInfo.brand}
+          """,
+          subject: 'myDevinci Support - ${item.feedbackItem.type}',
+          recipients: ['mydevinci-support@devinci.fr'],
+          attachments: attachments,
         );
+        await FlutterMailer.send(mailOptions);
+        // await _pendingFeedbackItemStorage.clearPendingItem(item.id);
         break;
       } catch (e, stack) {
         if (attempt >= _maxAttempts) {
